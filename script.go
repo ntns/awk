@@ -457,6 +457,46 @@ func Auto(v ...interface{}) PatternFunc {
 	panic("Auto expects 0, 1, or an even number of arguments")
 }
 
+func All(v ...interface{}) PatternFunc {
+	if len(v) == 0 {
+		// No arguments: Match anything.
+		return matchAny
+	}
+	return func(s *Script) bool {
+		// Return true iff all patterns are true.
+		for _, f := range v {
+			if !Auto(f)(s) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func Not(v interface{}) PatternFunc {
+	switch x := v.(type) {
+	case PatternFunc:
+		return func(s *Script) bool {
+			return !x(s)
+		}
+	default:
+		return Not(Auto(x))
+	}
+}
+
+func Exit() ActionFunc {
+	return func(s *Script) {
+		s.Exit()
+	}
+}
+
+func (s *Script) CharAt(i int) byte {
+	if i < len(s.F(0).String()) {
+		return s.F(0).String()[i]
+	}
+	return 0
+}
+
 // AppendStmt appends a pattern-action pair to a Script.  If the pattern
 // function is nil, the action will be performed on every record.  If the
 // action function is nil, the record will be output verbatim to the standard
